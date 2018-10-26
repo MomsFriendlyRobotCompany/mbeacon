@@ -5,13 +5,13 @@
 ##############################################
 #
 # https://pymotw.com/2/socket/multicast.html
+#
 import socket
 import struct
 import threading
 import time
 # import ipaddress  # kjw
-# import pickle
-# from collections import namedtuple
+from mbeacon.transport import Ascii, Json, Pickle
 import os
 
 
@@ -31,19 +31,21 @@ class Service(object):
     #     # return s.format(self.serviceName, self.ip, self.in_addr, self.out_addr, self.info_addr)
 
 
-class Beacon(object):
+class BeaconBase(object):
     mcast_addr = '224.3.29.110'
     mcast_port = 11311
     timeout = 5
 
 
-class BeaconFinder(Beacon):
+class BeaconFinder(BeaconBase):
     """
     Find Services using the magic of multicast
 
+    pid = 123456
+    proc_name = "my-cool-process"
     key = hostname
     finder = BeaconFinder(key)
-    ('tcp://in', 'tcp://out',) = finder.search(11311,"function_name")
+    msg = finder.search(msg)
     """
     def __init__(self, key, ttl=10, handler=Pickle):
         self.group = (self.mcast_addr, self.mcast_port)
@@ -86,15 +88,18 @@ class BeaconFinder(Beacon):
         return servicesFound
 
 
-class BeaconServer(Beacon):
+class BeaconServer(BeaconBase):
     """A simple multicast listener which responds to
     requests for services it has
-
+    
+    # message to be transmitted via multicast
+    msg = {'something': 123, 'other': 'abc'}
+    
+    # create a server
     provider = BeaconServer(
-        GeckoService(9998, 9999),
         'hostname',
-        callback_function [optional],
-        handler [optional]
+        callback_function [optional],  # ??
+        handler              # ??
     )
 
     provider.start()
