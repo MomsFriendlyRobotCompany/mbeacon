@@ -10,82 +10,19 @@ import struct
 import threading
 import time
 # import ipaddress  # kjw
-import pickle
+# import pickle
 # from collections import namedtuple
 import os
 
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
-
-def get_host_key():
-    try:
-        key = os.uname().nodename.split('.')[0].lower()
-    except:
-        key = socket.gethostname()
-
-    return key
-
-
-class Ascii(object):
-    """Simple ASCII format to send info"""
-    def dumps(self, data):
-        return "|".join(data).encode('utf-8')
-    def loads(self, msg):
-        return msg.decode('utf-8').split("|")
-
-class Json(object):
-    """Use json to transport message"""
-    def dumps(self, data):
-        return json.dumps(data).encode('utf-8')
-    def loads(self, msg):
-        return json.loads(msg.decode('utf-8'))
-
-class Pickle(object):
-    """Use pickle to transport message"""
-    def dumps(self, data):
-        return pickle.dumps(data)
-    def loads(self, msg):
-        return pickle.loads(msg)
-
-
-class GetIP(object):
-    ip = None
-    def get(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            # doesn't even have to be reachable
-            s.connect(('10.255.255.255', 1))
-            IP = s.getsockname()[0]
-        except:
-            try:
-                n = socket.gethostname()
-                # make sure it has a zeroconfig .local or you end up
-                # with 127.0.0.1 as your address
-                if n.find('.local') < 0:
-                    n += '.local'
-                IP = socket.gethostbyname(n)
-            except:
-                IP = '127.0.0.1'
-        finally:
-            s.close()
-
-        self.ip = IP
-        return IP
-
-
-class GeckoService(object):
-    def __init__(self, i, o):
-        self.serviceName = "GeckoCore"
-        self.in_addr = i
-        self.out_addr = o
+class Service(object):
+    def __init__(self, name, msg):
+        self.serviceName = name
+        self.msg = msg
 
     def as_tuple(self):
-        # return (self.in_addr, self.out_addr, self.info_addr,)
-        return (self.in_addr, self.out_addr,)
-
+        return tuple(self.msg.items())
+    
     # def __repr__(self):
     #     """For printing"""
     #     # s = "{} [{}]\n  in: {}\n  out: {}\n  info: {}"
@@ -243,3 +180,66 @@ class BeaconServer(Beacon):
                                     pid = int(data[2])
                                     name = data[3]
                                     self.callback(pid, name)
+
+                                    
+# -----------------
+# try:
+#     import simplejson as json
+# except ImportError:
+#     import json
+
+
+# def get_host_key():
+#     try:
+#         key = os.uname().nodename.split('.')[0].lower()
+#     except:
+#         key = socket.gethostname()
+
+#     return key
+
+
+# class Ascii(object):
+#     """Simple ASCII format to send info"""
+#     def dumps(self, data):
+#         return "|".join(data).encode('utf-8')
+#     def loads(self, msg):
+#         return msg.decode('utf-8').split("|")
+
+# class Json(object):
+#     """Use json to transport message"""
+#     def dumps(self, data):
+#         return json.dumps(data).encode('utf-8')
+#     def loads(self, msg):
+#         return json.loads(msg.decode('utf-8'))
+
+# class Pickle(object):
+#     """Use pickle to transport message"""
+#     def dumps(self, data):
+#         return pickle.dumps(data)
+#     def loads(self, msg):
+#         return pickle.loads(msg)
+
+
+# class GetIP(object):
+#     ip = None
+#     def get(self):
+#         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#         try:
+#             # doesn't even have to be reachable
+#             s.connect(('10.255.255.255', 1))
+#             IP = s.getsockname()[0]
+#         except:
+#             try:
+#                 n = socket.gethostname()
+#                 # make sure it has a zeroconfig .local or you end up
+#                 # with 127.0.0.1 as your address
+#                 if n.find('.local') < 0:
+#                     n += '.local'
+#                 IP = socket.gethostbyname(n)
+#             except:
+#                 IP = '127.0.0.1'
+#         finally:
+#             s.close()
+
+#         self.ip = IP
+#         return IP
