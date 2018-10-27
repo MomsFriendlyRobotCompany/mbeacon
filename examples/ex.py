@@ -65,8 +65,8 @@ def client(e):
     # publisher setup
     msg = PubIPC('local','bob',12345,'fun').msg
     bf.send(msg)
-    msg = PubIPC('local','tom',12345,'fun').msg
-    bf.send(msg)
+    # msg = PubIPC('local','tom',12345,'fun').msg
+    # bf.send(msg)
 
     while e.isSet():
         print('-'*40)
