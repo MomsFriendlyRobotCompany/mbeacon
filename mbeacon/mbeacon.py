@@ -16,30 +16,14 @@ from mbeacon.transport import Ascii, Json, Pickle
 import os
 
 
-class Service(object):
-    def __init__(self, name, msg):
-        self.serviceName = name
-        self.msg = msg
-
-    def as_tuple(self):
-        return tuple(self.msg.items())
-
-    # def __repr__(self):
-    #     """For printing"""
-    #     # s = "{} [{}]\n  in: {}\n  out: {}\n  info: {}"
-    #     s = "{} [{}]\n  in: {}\n  out: {}"
-    #     return s.format(self.serviceName, self.ip, self.in_addr, self.out_addr,)
-    #     # return s.format(self.serviceName, self.ip, self.in_addr, self.out_addr, self.info_addr)
-
-
 class BeaconBase(object):
     """
     https://www.tldp.org/HOWTO/Multicast-HOWTO-2.html
-    TTL     Scope
+    TTL  Scope
     ----------------------------------------------------------------------
-       0    Restricted to the same host. Won't be output by any interface.
-       1    Restricted to the same subnet. Won't be forwarded by a router.
-     <32         Restricted to the same site, organization or department.
+       0 Restricted to the same host. Won't be output by any interface.
+       1 Restricted to the same subnet. Won't be forwarded by a router.
+     <32 Restricted to the same site, organization or department.
      <64 Restricted to the same region.
     <128 Restricted to the same continent.
     <255 Unrestricted in scope. Global.
@@ -48,6 +32,16 @@ class BeaconBase(object):
     mcast_port = 11311
     timeout = 2
     ttl = 1
+
+    def __init__(self, key, ttl=1):
+        self.group = (self.mcast_addr, self.mcast_port)
+        self.sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM,socket.IPPROTO_UDP)
+        self.sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_TTL, ttl)
+        self.sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_LOOP, 1)
+        self.key = key
+
+        # print("[Beacon]==================")
+        # print(" key: {}".format(self.key))
 
 
 class BeaconFinder(BeaconBase):
@@ -60,24 +54,11 @@ class BeaconFinder(BeaconBase):
     finder = BeaconFinder(key)
     msg = finder.search(msg)
     """
-    def __init__(self, key, ttl=None, handler=Pickle):
-        if ttl: self.ttl = ttl
-        self.group = (self.mcast_addr, self.mcast_port)
-        self.sock = socket.socket(
-                socket.AF_INET,
-                socket.SOCK_DGRAM)
-        self.sock.setsockopt(
-                socket.IPPROTO_IP,
-                socket.IP_MULTICAST_TTL,
-                struct.pack('b', self.ttl))
-        self.sock.setsockopt(
-                socket.SOL_IP,
-                socket.IP_MULTICAST_LOOP,
-                1)
+    def __init__(self, key, ttl=1, handler=Pickle):
+        BeaconBase.__init__(self, key=key, ttl=ttl)
         self.handler = handler()
-        self.key = key
 
-    def search(self, msg):
+    def send(self, msg):
         """
         Search for services using multicast sends out a request for services
         of the specified name and then waits and gathers responses. This sends
@@ -86,7 +67,7 @@ class BeaconFinder(BeaconBase):
         # serviceName = 'GeckoCore'
         self.sock.settimeout(self.timeout)
         # msg = self.handler.dumps((self.key, serviceName, str(pid), processname,))
-        msg['key'] = self.key
+        # msg['key'] = self.key
         msg = self.handler.dumps(msg)
         self.sock.sendto(msg, self.group)
         servicesFound = None
@@ -96,7 +77,7 @@ class BeaconFinder(BeaconBase):
                 # server = ip:port, which is x.x.x.x:9990
                 data, server = self.sock.recvfrom(1024)
                 data = self.handler.loads(data)
-                print('>> Search:', data, server)
+                # print('>> Search:', data, server)
                 servicesFound = data
                 break
                 # if len(data) == 2:
@@ -131,54 +112,58 @@ class BeaconServer(BeaconBase):
         provider.stop()
 
     """
-    def __init__(self, key, callback=None, handler=Pickle):
-        ip = '0.0.0.0'
-        self.services = {}
-        self.callback = callback
-        self.serverAddr = (ip, self.mcast_port)
-        self.sock = socket.socket(
-                socket.AF_INET,
-                socket.SOCK_DGRAM,
-                socket.IPPROTO_UDP)
+    def __init__(self, key, callback=None, handler=Pickle, ttl=1):
+        BeaconBase.__init__(self, key=key, ttl=ttl)
+
+        # setup service socket
+        # allow multiple connections
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            self.sock.bind(self.serverAddr)
+            self.sock.bind(('0.0.0.0', self.mcast_port))
         except OSError as e:
             print("*** {} ***".format(e))
             raise
 
         mreq = struct.pack("=4sl", socket.inet_aton(self.mcast_addr), socket.INADDR_ANY)
         self.sock.setsockopt(socket.SOL_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        self.sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_TTL, 1)
-        self.sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_LOOP, 1)
+
+        # setup server data
+        self.services = {}  # services
+        self.callback = callback
+        self.handler = handler()  # serialization method
+
+        # setup thread
         self.exit = False
-        self.handler = handler()
-
         self.listener = threading.Thread(target=self.listenerThread)
-        self.key = key
 
-        # print("[Beacon]==================")
-        # print(" key: {}".format(self.key))
-        # print(" service: {}".format(self.service.as_tuple()))
-
-    def push(self, name, msg):
+    def register(self, name, msg):
+        """Register a service"""
         self.services[name] = msg
 
+    def unregister(self, name):
+        """Unregister a service"""
+        if name in self.services.keys():
+            self.services.pop(name)
+
     def start(self):
+        """Start the listener thread"""
         self.listener.setDaemon(True)
         self.listener.start()
 
     def stop(self):
+        """Stop the listener thread"""
         self.exit = True
 
+    def listen(self):
+        """TBD"""
+        pass
+
     def listenerThread(self):
+        """Listener thread that runs until self.exit is True"""
         self.sock.setblocking(0)
 
         ip = GetIP().get()
         print("<<< beacon ip: {} >>>".format(ip))
-
-        # msg = self.service.as_tuple()
-        # msg = self.handler.dumps(msg)
 
         while True:
             if self.exit is True:
@@ -191,14 +176,42 @@ class BeaconServer(BeaconBase):
                     continue
 
                 data = self.handler.loads(data)
-                print("<< {}:{} >>".format(address,data))
+                print(">> Address: {}".format(address))
+                print(">> Data: {}".format(data))
 
-                key = data['key']
-                if key == self.key:
-                    if 'topic' in data.keys():
-                        print('sub req')
-                    msg  = self.handler.dumps(('hello',11,22,33,))
-                    self.sock.sendto(msg, address)
+                if self.key == data[0]:
+                    if self.callback:
+                        self.callback(data, address)
+                    else:
+                        msg  = self.handler.dumps(('hello',))
+                        self.sock.sendto(msg, address)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                # key = data['key']
+                # if key == self.key:
+                #     if 'topic' in data.keys():
+                #         print('sub req')
+                #     msg  = self.handler.dumps(('hello',11,22,33,))
+                #     self.sock.sendto(msg, address)
 
 
 

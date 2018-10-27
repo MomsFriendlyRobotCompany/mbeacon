@@ -5,7 +5,9 @@
 ##############################################
 from __future__ import absolute_import, print_function, division
 
-from mbeacon.mbeacon import BeaconServer, Service, BeaconFinder
+from mbeacon.mbeacon import BeaconServer
+from mbeacon.mbeacon import BeaconFinder
+# from mbeacon.mbeacon import Service
 
 __author__ = "Kevin Walchko"
 __license__ = "MIT"
