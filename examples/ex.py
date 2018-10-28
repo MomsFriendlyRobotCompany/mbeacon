@@ -3,7 +3,8 @@
 import threading
 import time
 from mbeacon import BeaconServer, BeaconFinder
-from collections import namedtuple
+# from collections import namedtuple
+from enum import Enum, IntFlag
 
 
 # Pub_t = namedtuple('Pub_t', 'key topic pid funcname')
@@ -11,6 +12,8 @@ from collections import namedtuple
 # Perf_t = namedtuple('Perf_t', 'key nummsg msgrate datarate funcname')
 # Connect_t = namedtuple('Connect_t', 'topic ip')
 
+MsgsIPC = Enum('MsgsIPC', 'Pub Sub Resp Perf')
+TTL = IntFlag('TTL',{'host': 0, 'subnet': 1, 'site': 31})
 
 class IPC(object):
     def __init__(self, key, kind, topic, pid, funcname):
@@ -18,42 +21,42 @@ class IPC(object):
 
 class PubIPC(IPC):
     def __init__(self, key, topic, pid, funcname):
-        IPC.__init__(self, key, 0, topic, pid, funcname,)
+        IPC.__init__(self, key, MsgsIPC.Pub, topic, pid, funcname,)
 
 class SubIPC(IPC):
     def __init__(self, key, topic, pid, funcname):
-        IPC.__init__(self, key, 1, topic, pid, funcname,)
+        IPC.__init__(self, key, MsgsIPC.Sub, topic, pid, funcname,)
 
 class PerfIPC(object):
     def __init__(self, key, nummsg, msgrate, datarate, funcname):
-        self.msg = (key, nummsg, msgrate, datarate, funcname,)
+        self.msg = (key, MsgsIPC.Perf, nummsg, msgrate, datarate, funcname,)
 
 class CoreIPC(object):
     def __init__(self, topic, tcpaddr):
         self.msg = (topic, tcpaddr,)
 
 
-# class mService(Service):
-#     def __init__(self):
-#         Service.__init__(self, msg)
-#
-#     def dumps(self):
-#         m = tuple(msg) + (0,)
-#         return m
-#
-#     def loads(self):
-#         pass
-def callback(d, a):
-    pass
+services = {}
+
+def callback(data, address):
+    # print(">> Address: {}".format(address))
+    # print(">> Data: {}".format(data))
+
+    if data[1] == MsgsIPC.Pub:
+        services[data[2]] = address
+        ret = ('pub register', data[2],)
+    elif (data[1] == MsgsIPC.Sub) and (data[2] in services.keys()):
+        ret = ('sub request', data[2], services[data[2]],)
+    elif data[1] == MsgsIPC.Perf:
+        ret = (1234,)
+        print('>> performance data')
+    else:
+        ret = ('unknown',)
+    return ret
 
 def server(e):
-    bs = BeaconServer('local')
-
-    # msg = {'a':1,'b':2}
-    # bs.register('bob', msg)
-    #
-    # msg = {'aa':111,'bb':222,'cc':333}
-    # bs.register('tom', msg)
+    # print(TTL.host == 0)
+    bs = BeaconServer('local', callback=callback)
     bs.start()
 
     while e.isSet():
@@ -62,22 +65,34 @@ def server(e):
 def client(e):
     bf = BeaconFinder('local')
 
+    time.sleep(1)
+
     # publisher setup
-    msg = PubIPC('local','bob',12345,'fun').msg
-    bf.send(msg)
-    # msg = PubIPC('local','tom',12345,'fun').msg
-    # bf.send(msg)
+    ans = None
+    while ans is None:
+        msg = PubIPC('local','bob',12345,'fun').msg
+        ans = bf.send(msg)
+    print(ans)
+
+    ans = None
+    while ans is None:
+        msg = PubIPC('local','tom',12345,'fun').msg
+        ans = bf.send(msg)
+    print(ans)
 
     while e.isSet():
         print('-'*40)
 
         msg = SubIPC('local','tom',12345,'fun').msg
         ret = bf.send(msg)
-        print('>>', ret)
+        print('>> {}'.format(ret))
 
         msg = SubIPC('local','bob',12345,'fun').msg
         ret = bf.send(msg)
-        print('>>', ret)
+        print('>> {}'.format(ret))
+
+        msg = PerfIPC('local',1,2,3,'fun').msg
+        bf.send(msg)
 
 
 if __name__ == "__main__":
@@ -92,13 +107,3 @@ if __name__ == "__main__":
 
     time.sleep(6)
     e.clear()
-
-    # try:
-    #     while(1):
-    #         time.sleep(1)
-    # except KeyboardInterrupt:
-    #     e.clear()
-    #     time.sleep(0.5)
-    #
-    # s.join()
-    # c.join()

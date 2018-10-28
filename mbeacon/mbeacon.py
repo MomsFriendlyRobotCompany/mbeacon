@@ -136,14 +136,14 @@ class BeaconServer(BeaconBase):
         self.exit = False
         self.listener = threading.Thread(target=self.listenerThread)
 
-    def register(self, name, msg):
-        """Register a service"""
-        self.services[name] = msg
-
-    def unregister(self, name):
-        """Unregister a service"""
-        if name in self.services.keys():
-            self.services.pop(name)
+    # def register(self, name, msg):
+    #     """Register a service"""
+    #     self.services[name] = msg
+    #
+    # def unregister(self, name):
+    #     """Unregister a service"""
+    #     if name in self.services.keys():
+    #         self.services.pop(name)
 
     def start(self):
         """Start the listener thread"""
@@ -176,12 +176,14 @@ class BeaconServer(BeaconBase):
                     continue
 
                 data = self.handler.loads(data)
-                print(">> Address: {}".format(address))
-                print(">> Data: {}".format(data))
+                # print(">> Address: {}".format(address))
+                # print(">> Data: {}".format(data))
 
                 if self.key == data[0]:
                     if self.callback:
-                        self.callback(data, address)
+                        msg = self.callback(data, address)
+                        msg  = self.handler.dumps(msg)
+                        self.sock.sendto(msg, address)
                     else:
                         msg  = self.handler.dumps(('hello',))
                         self.sock.sendto(msg, address)
