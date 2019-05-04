@@ -28,9 +28,9 @@ class BeaconBase(object):
     <128 Restricted to the same continent.
     <255 Unrestricted in scope. Global.
     """
-    mcast_addr = '224.3.29.110'
+    mcast_addr = '224.3.29.120'
     mcast_port = 11311
-    timeout = 2
+    timeout = 5
     ttl = 1
 
     def __init__(self, key, ttl=1):
@@ -54,7 +54,7 @@ class BeaconFinder(BeaconBase):
     finder = BeaconFinder(key)
     msg = finder.search(msg)
     """
-    def __init__(self, key, ttl=1, handler=Pickle):
+    def __init__(self, key, ttl=1, handler=Ascii):
         BeaconBase.__init__(self, key=key, ttl=ttl)
         self.handler = handler()
 
@@ -71,21 +71,23 @@ class BeaconFinder(BeaconBase):
         msg = self.handler.dumps(msg)
         self.sock.sendto(msg, self.group)
         servicesFound = None
-        while True:
-            try:
+        # while True:
+        try:
+            while True:
                 # data = returned message info
                 # server = ip:port, which is x.x.x.x:9990
                 data, server = self.sock.recvfrom(1024)
                 data = self.handler.loads(data)
                 # print('>> Search:', data, server)
                 servicesFound = data
-                break
+                # break
                 # if len(data) == 2:
                 #     servicesFound = (zmqTCP(server[0], data[0]), zmqTCP(server[0], data[1]),)
                 #     break
-            except socket.timeout:
-                print("*** timeout ***")
-                break
+        except socket.timeout:
+            # print("*** timeout ***")
+            # break
+            pass
         # print(">> search done")
         return servicesFound
 
@@ -112,7 +114,7 @@ class BeaconServer(BeaconBase):
         provider.stop()
 
     """
-    def __init__(self, key, callback=None, handler=Pickle, ttl=1):
+    def __init__(self, key, callback=None, handler=Ascii, ttl=1):
         BeaconBase.__init__(self, key=key, ttl=ttl)
 
         # setup service socket
@@ -162,8 +164,8 @@ class BeaconServer(BeaconBase):
         """Listener thread that runs until self.exit is True"""
         self.sock.setblocking(0)
 
-        ip = GetIP().get()
-        print("<<< beacon ip: {} >>>".format(ip))
+        ip, hostname = GetIP().get()
+        print("<<< beacon {} ip: {} >>>".format(hostname, ip))
 
         while True:
             if self.exit is True:
@@ -185,7 +187,7 @@ class BeaconServer(BeaconBase):
                         msg  = self.handler.dumps(msg)
                         self.sock.sendto(msg, address)
                     else:
-                        msg  = self.handler.dumps(('hello',))
+                        msg  = self.handler.dumps((ip, hostname))
                         self.sock.sendto(msg, address)
 
 
