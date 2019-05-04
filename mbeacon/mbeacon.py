@@ -78,14 +78,14 @@ class BeaconFinder(BeaconBase):
                 # server = ip:port, which is x.x.x.x:9990
                 data, server = self.sock.recvfrom(1024)
                 data = self.handler.loads(data)
-                # print('>> Search:', data, server)
+                print('>> Search:', data, server)
                 servicesFound = data
                 # break
                 # if len(data) == 2:
                 #     servicesFound = (zmqTCP(server[0], data[0]), zmqTCP(server[0], data[1]),)
                 #     break
         except socket.timeout:
-            # print("*** timeout ***")
+            print("*** timeout ***")
             # break
             pass
         # print(">> search done")
@@ -179,7 +179,7 @@ class BeaconServer(BeaconBase):
 
                 data = self.handler.loads(data)
                 # print(">> Address: {}".format(address))
-                # print(">> Data: {}".format(data))
+                print(">> Data: {}".format(data))
 
                 if self.key == data[0]:
                     if self.callback:
