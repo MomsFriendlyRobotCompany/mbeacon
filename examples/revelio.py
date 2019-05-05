@@ -4,7 +4,7 @@ from colorama import Fore, Style
 from mbeacon import BeaconFinder
 
 
-bf = BeaconFinder("raspberrypi")
+bf = BeaconFinder("raspberrypi", ttl=2)
 
 found = {}
 

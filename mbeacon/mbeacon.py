@@ -14,6 +14,10 @@ import time
 from mbeacon.ip import GetIP
 from mbeacon.transport import Ascii, Json, Pickle
 import os
+import platform
+from collections import namedtuple
+
+Host = namedtuple('Host', 'ipv4 hostname os arch')
 
 
 class BeaconBase(object):
@@ -77,7 +81,7 @@ class BeaconFinder(BeaconBase):
                 data = self.handler.loads(data)
                 print('>> sock.recvfrom:', data, server)
                 if data:
-                    ip, host = data
+                    ip, host = data[:2]
                     if host not in self.hosts.keys():
                         self.hosts[host] = ip
         except socket.timeout:
@@ -127,12 +131,16 @@ class BeaconServer(BeaconBase):
 
         self.handler = handler()  # serialization method
 
-    def listenerThread(self):
+    def listener(self):
         """Listener thread that runs until self.exit is True"""
         self.sock.setblocking(0)
 
+        p = platform.uname()
+        # machine = p.machine
+        # self.system = p.system
+
         ip, hostname = GetIP().get()
-        print("<<< beacon {} ip: {} >>>".format(hostname, ip))
+        print("<<< beacon {} [{}] {} {} >>>".format(hostname, ip, p.system, p.machine))
 
         while True:
             time.sleep(0.2)
@@ -146,7 +154,7 @@ class BeaconServer(BeaconBase):
             # print(">> Data: {}".format(data))
 
             if self.key == data[0]:
-                msg  = self.handler.dumps((ip, hostname,))
+                msg  = self.handler.dumps((ip, hostname, p.system, p.machine,))
                 self.sock.sendto(msg, address)
                 print('.', end='', flush=True)
 

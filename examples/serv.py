@@ -6,6 +6,6 @@ from mbeacon import BeaconServer
 bs = BeaconServer("raspberrypi")
 
 try:
-    bs.listenerThread()
+    bs.listener()
 except KeyboardInterrupt:
     print("bye")
