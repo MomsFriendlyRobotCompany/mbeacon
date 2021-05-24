@@ -15,7 +15,7 @@ from enum import Enum, IntFlag
 MsgsIPC = Enum('MsgsIPC', 'Pub Sub Resp Perf')
 TTL = IntFlag('TTL',{'host': 0, 'subnet': 1, 'site': 31})
 
-class IPC(object):
+class IPC:
     def __init__(self, key, kind, topic, pid, funcname):
         self.msg = (key, kind, topic, pid, funcname,)
 
@@ -27,11 +27,11 @@ class SubIPC(IPC):
     def __init__(self, key, topic, pid, funcname):
         IPC.__init__(self, key, MsgsIPC.Sub, topic, pid, funcname,)
 
-class PerfIPC(object):
+class PerfIPC:
     def __init__(self, key, nummsg, msgrate, datarate, funcname):
         self.msg = (key, MsgsIPC.Perf, nummsg, msgrate, datarate, funcname,)
 
-class CoreIPC(object):
+class CoreIPC:
     def __init__(self, topic, tcpaddr):
         self.msg = (topic, tcpaddr,)
 

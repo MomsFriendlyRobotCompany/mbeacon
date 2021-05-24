@@ -3,7 +3,11 @@
 # Copyright (c) 2018 Kevin Walchko
 # see LICENSE for full details
 ##############################################
-from __future__ import absolute_import, print_function, division
+
+try:
+    from importlib.metadata import version # type: ignore
+except ImportError:
+    from importlib_metadata import version # type: ignore
 
 from mbeacon.mbeacon import BeaconServer
 from mbeacon.mbeacon import BeaconFinder
@@ -11,4 +15,4 @@ from mbeacon.mbeacon import BeaconFinder
 
 __author__ = "Kevin Walchko"
 __license__ = "MIT"
-__version__ = "0.0.1"
+__version__ = version("mbeacon")

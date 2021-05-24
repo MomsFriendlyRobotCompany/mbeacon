@@ -1,3 +1,8 @@
+##############################################
+# The MIT License (MIT)
+# Copyright (c) 2018 Kevin Walchko
+# see LICENSE for full details
+##############################################
 import pickle
 try:
     import simplejson as json
@@ -28,7 +33,7 @@ Json --------------------------------------------------------
 [1, 2, 3, 'hi']
 """
 
-class Ascii(object):
+class Ascii:
     """Simple ASCII format to send info"""
     def dumps(self, data):
         return "|".join(data).encode('utf-8')
@@ -36,7 +41,7 @@ class Ascii(object):
         return msg.decode('utf-8').split("|")
 
 
-class Json(object):
+class Json:
     """Use json to transport message"""
     def dumps(self, data):
         return json.dumps(data).encode('utf-8')
@@ -44,7 +49,7 @@ class Json(object):
         return json.loads(msg.decode('utf-8'))
 
 
-class Pickle(object):
+class Pickle:
     """Use pickle to transport message"""
     def dumps(self, data):
         return pickle.dumps(data)

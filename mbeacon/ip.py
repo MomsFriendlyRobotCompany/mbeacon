@@ -1,6 +1,11 @@
+##############################################
+# The MIT License (MIT)
+# Copyright (c) 2018 Kevin Walchko
+# see LICENSE for full details
+##############################################
 import socket
 
-class GetIP(object):
+class GetIP:
     ip = None
     def get(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

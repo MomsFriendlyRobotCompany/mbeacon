@@ -20,7 +20,7 @@ from collections import namedtuple
 Host = namedtuple('Host', 'ipv4 hostname os arch')
 
 
-class BeaconBase(object):
+class BeaconBase:
     """
     https://www.tldp.org/HOWTO/Multicast-HOWTO-2.html
     TTL  Scope
@@ -140,7 +140,7 @@ class BeaconServer(BeaconBase):
         # self.system = p.system
 
         ip, hostname = GetIP().get()
-        print("<<< beacon {} [{}] {} {} >>>".format(hostname, ip, p.system, p.machine))
+        print(f"<<< beacon {hostname} [{ip}] {p.system} {p.machine} >>>")
 
         while True:
             time.sleep(0.2)
